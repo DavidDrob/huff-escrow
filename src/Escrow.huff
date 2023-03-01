@@ -1,0 +1,116 @@
+// INTERFACES 
+#define function price() view returns (uint256)
+#define function buyer() view returns (address)
+#define function seller() view returns (address)
+#define function paymentState() view returns (bool)
+#define function deposit() payable returns (uint256)
+
+// STORAGE SLOTS
+#define constant PRICE = FREE_STORAGE_POINTER()
+#define constant BUYER_ADDRESS = FREE_STORAGE_POINTER()
+#define constant SELLER_ADDRESS = FREE_STORAGE_POINTER()
+#define constant PAYMENT_STATE = FREE_STORAGE_POINTER() // boolean
+
+#define macro DEPOSIT() = takes (0) returns (0) {
+    // check if message.value is greater then price
+    [PRICE] sload               // [price]
+    dup1 dup1 callvalue         // [message.value, price, message.value, price]
+    gt                          // [message.value > price, message.value, price]
+    swap2                       // [price, message.value, message.value > price]
+    eq or                       // [price == message.value | message.value > price]
+    is_enough jumpi             // []
+
+    0x00 0x00 revert    
+
+    is_enough:
+        true                    // [true, state_storage_pointer]
+        [PAYMENT_STATE]         // [payment_state_storage_pointer]
+        sstore
+}
+
+#define macro PRICE() = takes (0) returns (1) {
+    [PRICE] sload               // [price]
+    0x00 mstore                 // []
+
+    0x20 0x00 return
+}
+
+#define macro BUYER() = takes (0) returns (1) {
+    [BUYER_ADDRESS] sload       // [buyer]
+    0x00 mstore                 // []
+
+    0x20 0x00 return
+}
+
+
+#define macro SELLER() = takes (0) returns (1) {
+    [SELLER_ADDRESS] sload      // [seller]
+    0x00 mstore                 // []
+
+    0x20 0x00 return
+}
+
+#define macro PAYMENT_STATE() = takes (0) returns (1) {
+    [PAYMENT_STATE] sload       // [payment_state]
+    0x00 mstore                 // []
+
+    0x20 0x00 return
+}
+
+#define macro MAIN() = takes (0) returns (0) {
+    0x00 calldataload 0xE0 shr
+    dup1 __FUNC_SIG(price) eq priceJump jumpi
+    dup1 __FUNC_SIG(buyer) eq buyerJump jumpi
+    dup1 __FUNC_SIG(seller) eq sellerJump jumpi
+    dup1 __FUNC_SIG(paymentState) eq paymentStateJump jumpi
+    dup1 __FUNC_SIG(deposit) eq depositJump jumpi
+
+    0x00 0x00 revert
+
+    priceJump:
+        PRICE()
+    buyerJump:
+        BUYER()
+    sellerJump:
+        SELLER()
+    paymentStateJump:
+        PAYMENT_STATE()
+    depositJump:
+        DEPOSIT()
+}
+
+
+#define macro CONSTRUCTOR() = takes(0) returns (0) {
+  // store price in memory
+  0x20                      // [size]                        
+  0x60 codesize sub         // [offset, size]
+  0x00                      // [offset, size]
+  codecopy                  // []  
+
+  // store price in storage
+  0x00 mload                // [buyer]
+  [PRICE]                   // [price_storage_pointer, buyer]
+  sstore                    // []
+
+  // store buyer's address in memory
+  0x20                      // [size]                        
+  0x40 codesize sub         // [offset, size]
+  0x00                      // [offset, size]
+  codecopy                  // []  
+
+  // store buyer's address in storage
+  0x00 mload                // [buyer]
+  [BUYER_ADDRESS]           // [buyer_storage_pointer, buyer]
+  sstore                    // []
+
+  // store sellers's address in memory
+  0x20                      // [size]                        
+  0x20 codesize sub         // [offset, size]
+  0x00                      // [offset, size]
+  codecopy                  // []  
+
+  // store sellers's address in storage
+  0x00 mload                // [buyer]
+  [SELLER_ADDRESS]          // [buyer_storage_pointer, buyer]
+  sstore                    // []
+}
