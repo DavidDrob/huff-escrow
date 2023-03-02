@@ -44,22 +44,22 @@ contract EscrowTest is Test {
         assertEq(address(escrow).balance, uint256(0x32));
     }
 
-    /// @dev Test if the delivery can be confirmed
-    function testConfirmDelivery() public {
+    /// @dev Test if the delivery can be confirmed only by the buyer
+    function testOnlyBuyerCanConfirm() public {
         assertFalse(escrow.deliveryState());
 
+        vm.prank(address(0x3));
         escrow.confirmDelivery();
 
         assertTrue(escrow.deliveryState());
     }
 
-    // TODO
-    // function testOnlyBuyerCanConfirm() public {}
-
+    /// @dev Funds can we withdrawn by the seller
     function testWithdraw() public {
         uint256 balanceBefore = address(0x02).balance;
 
         escrow.deposit{value: uint256(0x32)}();
+        vm.prank(address(0x3));
         escrow.confirmDelivery();
         escrow.withdraw();
 
