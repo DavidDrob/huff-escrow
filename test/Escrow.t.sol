@@ -52,6 +52,19 @@ contract EscrowTest is Test {
 
         assertTrue(escrow.deliveryState());
     }
+
+    // TODO
+    // function testOnlyBuyerCanConfirm() public {}
+
+    function testWithdraw() public {
+        uint256 balanceBefore = address(0x02).balance;
+
+        escrow.deposit{value: uint256(0x32)}();
+        escrow.confirmDelivery();
+        escrow.withdraw();
+
+        assertEq(address(0x02).balance, balanceBefore + uint256(0x32));
+    }
 }
 
 interface Escrow {
@@ -68,4 +81,6 @@ interface Escrow {
     function deposit() external payable;
 
     function confirmDelivery() external payable;
+
+    function withdraw() external returns (uint8);
 }
