@@ -43,6 +43,15 @@ contract EscrowTest is Test {
         // balance
         assertEq(address(escrow).balance, uint256(0x32));
     }
+
+    /// @dev Test if the delivery can be confirmed
+    function testConfirmDelivery() public {
+        assertFalse(escrow.deliveryState());
+
+        escrow.confirmDelivery();
+
+        assertTrue(escrow.deliveryState());
+    }
 }
 
 interface Escrow {
@@ -54,5 +63,9 @@ interface Escrow {
 
     function paymentState() external view returns (bool);
 
+    function deliveryState() external view returns (bool);
+
     function deposit() external payable;
+
+    function confirmDelivery() external payable;
 }

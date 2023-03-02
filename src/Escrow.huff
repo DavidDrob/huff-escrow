@@ -2,17 +2,20 @@
 #define function price() view returns (uint256)
 #define function buyer() view returns (address)
 #define function seller() view returns (address)
+#define function deliveryState() view returns (bool)
+#define function confirmDelivery() payable returns ()
 #define function paymentState() view returns (bool)
-#define function deposit() payable returns (uint256)
+#define function deposit() payable returns ()
 
 // STORAGE SLOTS
 #define constant PRICE = FREE_STORAGE_POINTER()
 #define constant BUYER_ADDRESS = FREE_STORAGE_POINTER()
 #define constant SELLER_ADDRESS = FREE_STORAGE_POINTER()
 #define constant PAYMENT_STATE = FREE_STORAGE_POINTER() // boolean
+#define constant DELIVERY_STATE = FREE_STORAGE_POINTER() // boolean
 
 #define macro DEPOSIT() = takes (0) returns (0) {
-    // check if message.value is greater then price
+    // check if message.value is greater than or equal the price
     [PRICE] sload               // [price]
     dup1 dup1 callvalue         // [message.value, price, message.value, price]
     gt                          // [message.value > price, message.value, price]
@@ -23,9 +26,15 @@
     0x00 0x00 revert    
 
     is_enough:
-        true                    // [true, state_storage_pointer]
-        [PAYMENT_STATE]         // [payment_state_storage_pointer]
+        true                    // [true]
+        [PAYMENT_STATE]         // [payment_state_storage_pointer, true]
         sstore
+}
+
+#define macro CONFIRM_DELIVERY() = takes (0) returns (0) {
+    true                        // true
+    [DELIVERY_STATE]            // [delivery_state_storage_pointer, true]
+    sstore
 }
 
 #define macro PRICE() = takes (0) returns (1) {
@@ -57,11 +66,20 @@
     0x20 0x00 return
 }
 
+#define macro DELIVERY_STATE() = takes (0) returns (1) {
+    [DELIVERY_STATE] sload      // [delivery_state]
+    0x00 mstore                 // []
+
+    0x20 0x00 return
+}
+
 #define macro MAIN() = takes (0) returns (0) {
     0x00 calldataload 0xE0 shr
     dup1 __FUNC_SIG(price) eq priceJump jumpi
     dup1 __FUNC_SIG(buyer) eq buyerJump jumpi
     dup1 __FUNC_SIG(seller) eq sellerJump jumpi
+    dup1 __FUNC_SIG(deliveryState) eq deliveryStateJump jumpi
+    dup1 __FUNC_SIG(confirmDelivery) eq confirmDeliveryJump jumpi
     dup1 __FUNC_SIG(paymentState) eq paymentStateJump jumpi
     dup1 __FUNC_SIG(deposit) eq depositJump jumpi
 
@@ -73,6 +91,10 @@
         BUYER()
     sellerJump:
         SELLER()
+    deliveryStateJump:
+        DELIVERY_STATE()
+    confirmDeliveryJump:
+        CONFIRM_DELIVERY()
     paymentStateJump:
         PAYMENT_STATE()
     depositJump:
