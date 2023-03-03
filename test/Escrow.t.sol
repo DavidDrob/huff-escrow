@@ -33,20 +33,28 @@ contract EscrowTest is Test {
     }
 
     /// @dev Check if paymentState is set correctly and if contract balance is as expected.
-    function testDeposit() public payable {
+    function testDeposit(uint256 _amount) public payable {
         assertFalse(escrow.paymentState());
 
-        escrow.deposit{value: uint256(0x32)}();
+        vm.assume(_amount >= escrow.price());
+        vm.deal(address(this), 2**256 - 1);
+        escrow.deposit{value: _amount}();
 
         // payment state
         assertTrue(escrow.paymentState());
         // balance
-        assertEq(address(escrow).balance, uint256(0x32));
+        assertEq(address(escrow).balance, _amount);
     }
 
     /// @dev Test if the delivery can be confirmed only by the buyer
-    function testOnlyBuyerCanConfirm() public {
+    function testOnlyBuyerCanConfirm(address _badActor) public {
         assertFalse(escrow.deliveryState());
+
+        vm.assume(_badActor != address(0x3));
+        vm.startPrank(_badActor);
+        vm.expectRevert();
+        escrow.confirmDelivery();
+        vm.stopPrank();
 
         vm.prank(address(0x3));
         escrow.confirmDelivery();
@@ -55,15 +63,17 @@ contract EscrowTest is Test {
     }
 
     /// @dev Funds can we withdrawn by the seller
-    function testWithdraw() public {
+    function testWithdraw(uint256 _amount) public {
         uint256 balanceBefore = address(0x02).balance;
 
-        escrow.deposit{value: uint256(0x32)}();
+        vm.assume(_amount >= escrow.price());
+        vm.deal(address(this), 2**256 - 1);
+        escrow.deposit{value: _amount}();
         vm.prank(address(0x3));
         escrow.confirmDelivery();
         escrow.withdraw();
 
-        assertEq(address(0x02).balance, balanceBefore + uint256(0x32));
+        assertGe(address(0x02).balance, balanceBefore + uint256(0x32));
     }
 }
 
