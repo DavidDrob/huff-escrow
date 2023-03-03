@@ -18,7 +18,7 @@
 #define macro DEPOSIT() = takes (0) returns (1) {
     // check if message.value is greater than or equal the price
     [PRICE] sload               // [price]
-    dup1 dup1 callvalue         // [message.value, price, message.value, price]
+    callvalue dup2 dup2         // [message.value, price, message.value, price]
     gt                          // [message.value > price, message.value, price]
     swap2                       // [price, message.value, message.value > price]
     eq or                       // [price == message.value | message.value > price]

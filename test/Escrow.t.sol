@@ -46,6 +46,15 @@ contract EscrowTest is Test {
         assertEq(address(escrow).balance, _amount);
     }
 
+    /// @dev Deposit should revert when message.value is too little
+    function testRevertDeposit(uint256 _amount) public payable {
+        vm.assume(_amount < escrow.price());
+        vm.expectRevert();
+        escrow.deposit{value: _amount}();
+
+        assertFalse(escrow.paymentState());
+    }
+
     /// @dev Test if the delivery can be confirmed only by the buyer
     function testOnlyBuyerCanConfirm(address _badActor) public {
         assertFalse(escrow.deliveryState());
